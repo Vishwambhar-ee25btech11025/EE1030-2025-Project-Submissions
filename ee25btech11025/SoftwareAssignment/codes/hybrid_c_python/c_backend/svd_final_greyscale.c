@@ -3,7 +3,8 @@
 #include <math.h>
 
 #define epsilon 1e-12
-#define iterations 20                       //the no.of iterations that the code performs to efind each eigenvalue
+#define iterations 20                       
+//the no.of iterations that the code performs to efind each eigenvalue
 
 //This function is used to normalize a vector preventing it from growing infinitely large
 void normalize_vec(double *vec, int n) {
