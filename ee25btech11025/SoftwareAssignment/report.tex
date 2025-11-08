@@ -1,0 +1,315 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1em}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{black!5}, % light gray background
+    commentstyle=\color{green!40!black},
+    keywordstyle=\color{blue},
+    stringstyle=\color{purple},
+    basicstyle=\ttfamily\footnotesize, % Use a monospaced font
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\begin{document}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.3\linewidth]{figs/logo.png}
+\end{figure}
+\title{\textbf{Software Assignment Report}\\[10pt]
+\textbf{Image Compression}}
+\author{Vishwambhar - EE25BTECH11025}
+\date{\today}
+\maketitle
+\newpage
+
+\section*{Singular Value Decomposition(SVD)}
+
+Singular Value Decomposition (SVD) is one of the most fundamental matrix factorizations in linear algebra and forms the foundation of this project. It expresses any matrix \(A\) as the product of three matrices \(U\), \(\Sigma\), and \(V^T\):
+\begin{align}
+A = U \Sigma V^T
+\end{align}
+where $U$ and $V$ are orthogonal matrices and $\Sigma$ is diagonal.
+
+The conceptual understanding presented here is based on the lecture by \textbf{Prof. Gilbert Strang (MIT)} \cite{strang_svd}, which provides a geometric interpretation of SVD as a transformation that stretches and rotates vectors along orthogonal directions. According to this explanation, the singular values in \(\Sigma\) represent the magnitudes of these stretchings, while the columns of \(U\) and \(V\) represent orthogonal bases for the output and input spaces, respectively.
+
+\textbf{Summary of the lecture:} Prof. Strang demonstrates how SVD uncovers the fundamental structure of any linear transformation, showing the relationship between the range, null space, and rank of a matrix. This perspective was particularly helpful in understanding how image matrices can be compressed effectively by retaining only the largest singular values.
+
+
+\section*{Algorithms to compute SVD}
+\subsection*{1.Power Iteration}
+Iteratively multiplying a random vector by $A^TA$ to converge to dominanat right singular vectors and also using deflation for the matrix $A^TA$.\\
+\textbf{Pros}\\
+1. Simple and compact, minimal code is required.\\
+2. Good for just a few top singular values\\
+\textbf{Cons}\\
+1. Slow when eigen values are almost same.\\
+2. Needs normalizations to avoid overflow.
+
+\subsection*{2.Jacobi Method}
+Iteratively orthogonalizing a vector with Jacobi rotations until they become right singular vectors.\\
+\textbf{Pros}\\
+1. Good accuracy.\\
+2. Vectors are accurately orthogonal.\\
+\newpage
+\textbf{Cons}\\
+1. Slower, since has to find all k values.\\
+2. More iterations required if singular values are almost same.
+
+\subsection*{3. Golub-Reinsch algorithm}
+It first simplifies the matrix to a bidiagonal form using orthogonal transformations, then applies a fast QR- based method to extract the singular values and vectors.\\
+\textbf{Pros}\\
+1. Very stable and accurate.\\
+2. Works for any dense matrix.\\
+\textbf{Cons}\\
+1. Computationally heavy for very large matrices.\\
+2. Uses more memory.
+
+\subsection*{4. Divide and Conquer SVD}
+This algorithm improves the classical Golub–Reinsch SVD by dividing the bidiagonal matrix into smaller subproblems, computing the SVD of each part separately, and then combining the results through a secular equation.\\
+\textbf{Pros}\\
+1. Much faster\\
+2. Good accuracy\\
+\textbf{Cons}\\
+1. High memory usage.\\
+2. More complex implementation.
+
+\section*{Power method and its Advantages}
+The Power Method is an iterative algorithm used to compute the largest singular values and corresponsing singular vectors of a matrix.\\
+It repeatedly multiplies a random vector by $A^TA$, normalizes it, and gradually aligns the vector with the direction of the dominant right singular vector.\\
+The correspond singular value is obtained from the norm of $A\Vec{v}$, and the left singular vector is derived as $\Vec{u}=\frac{A\Vec{v}}{\sigma}$.\\
+By applying a deflation step, the algorithm can extract multiple singular values successively.\\
+
+
+\textbf{Advantages of Power method:}
+\begin{itemize}
+    \item Simple to implement(only uses matrix-vector multiplications).
+    \item Fast if you only need a few singular values
+    \item Low memory usage - unlike QR and divide-and-conquer it doesn't store big matrices.
+    \item Can be adapted to sparse or large matrices easily.
+\end{itemize}
+
+\section*{How and Why I used the Power method?}
+In this project, the power method was applied to compute a truncated SVD for image compression.\\
+Each color channel of the image was treated as a separate matrix.\\
+The algorithm iteratively multiplied a random vector by $A^TA$ to extract the dominant right singular vector, and used it to compute the corresponding singular value and left singular vector.\\
+This process was repeated k times(with deflation) to obtain the top $k$ singular values that represent the most significant features of the image.\\
+The compresses image was reconstructed as $A_k=U_k\Sigma_kV_k$, and combining all three channels produced the final RGB output.\\
+By varying $k$, we controlled the trade-off between image quality and compression level - smaller $k$ resulted in higher compression but lower detail, while larger $k$ produced near-original quality.\\[10pt]
+\textbf{Why?}
+\begin{itemize}
+    \item \textbf{Simple and effective} - easy to code and understand.
+    \item \textbf{Captures main features} - the top singular values preserve most of the image energy.
+    \item \textbf{Compression control} - by changing $k$, I can control quality vs. size. 
+    \item \textbf{Memory-efficient} - Stores only a few vectors.
+    \item \textbf{Not suitable} - if i have to find all singular values.
+\end{itemize}
+
+
+\section*{Explanation of the Code and the Math behind.}
+I have used the hybrid(C + python) option to compress the image. Python is used to read the iamge and store the values of intensity of each colour of pixels in a 3D matrix. And the C code is used to implement the logic of Power method as discussed above to find SVD. Python is also used to compare the runtime and accuracy of my algorithm and the standard python command(np.linalg.svd).(The codes are present in the codes folder)\\\\
+\subsection*{Math behind the code}
+The task of the gievn code is to perform image compression using SVD.\\
+\textbf{1. SVD}\\
+Any real matrix $A$ of size $m\times n$ can be decomposed into three matrices:
+\begin{align}
+    A=U\Sigma V^T
+\end{align}
+\textbf{2. Connection between SVD and Eigen-decomposition}\\
+The singular vectors and values of $A$ are directly related to the eigen vectors and eigenvalues of $A^TA$ and $AA^T$.
+\begin{itemize}
+    \item The columns of $V$ are the eigen vectors of $A^TA$.
+    \item The columns of $U$ are the eigen vectorso f $AA^T$.
+    \item The non-zero singular values in $\Sigma$ are the square roots of the non-zero eigen values of both $A^TA$ and $AA^T$.
+\end{itemize}
+\textbf{3. The power Iteration Method}\\
+To find the eigenvalues and eigenvectorsof $A^TA$, the code uses the power iteration method.\\
+The algorithm works as follows:\\
+1. Start with a random vector $\Vec{b}$\\
+2. In each iteration $k$, update the vector by multiplying it with the matrix $B$($B=A^TA$):$\Vec{b}_{k+1}=B\Vec{b}_k$.\\
+3. Normalize the resulting vector to prevent it from growing or shrinking to zero.\\
+4. After a sufficient number of iterations, the vector $\Vec{b}_k$ will converge to the eigenvector correspponding to the dominant eigenvalue of $B$.\\
+5. The dominant eigenvalue can then be calculated by using:
+\begin{align}
+    \lambda=\frac{\Vec{b}_k^TB\Vec{b}_k}{\Vec{b}_k^T\Vec{b}}
+\end{align}
+\textbf{4. Deflation}\\
+Once the dominant eigenvalue is found, the code uses a technique called deflation. It modifies the original matrix 
+$B$ to remove the influence of the found eigenvector, so that the power method, when applied to the modified matrix, will conerge to the next dominant eigenvector.\\
+The deflation is performed as shown below:
+\begin{align}
+    B_{def} = B-\lambda_1\Vec{v}_1\Vec{v}^T
+\end{align}
+\textbf{5. Reconstructing the image}\\
+An image can be represented as a sum of rank-one matrices, formed by the singular vectors and values:
+\begin{align}
+    A=\sigma_1\Vec{u}_1\Vec{v}_1^T+\sigma_2\Vec{u}_2\Vec{v}_2^T+\dots
+\end{align}
+By keeping only the top $k$ singular values and their corresponding vectors, we can create a low-rank approximation of the original image:
+\begin{align}
+    A_k\approx\sigma_1\Vec{u}_1\Vec{v}_1^T+\sigma_2\Vec{u}_2\Vec{v}_2^T+\dots+\sigma_k\Vec{u}_k\Vec{v}_k^T\\
+    A_k\approx U_k\Sigma_k V_k^T
+\end{align}
+
+
+This compressed representation requires significantly less storage than the original image, and the reconstructed image is often visually very similar.
+\subsection*{Pseudo Code}
+The following is the pseudo code for important function in C find\_svd.
+\begin{lstlisting}
+    FUNCTION find_svd(Input_Image_Data A, rows r, columns c, needed_eigen_vales k, channels ch,  Output_Image_Data res){
+    For each channel{
+        A_ch = A_pointer = to start of respective channel's matrix of A
+        R = R_pointer = to start of respective channel's matrix of res
+        Allocate memory to B = B_Matrix
+        Allocate memory to B_def = A_Deflated_Matrix
+        Allocate memory to U = Left_Singular_Matrix
+        Allocate memory to V = Right_Singular_Matrix
+        Allocate memory to S = Singular_Matrix
+        Allocate memory to eigenvec = Right_singular_Vector
+        Allocate memory to left_s_vec = Left_Singular_Vector
+
+        Calling FUNCTION A transpose A
+        Calling copy_Matrix FUNCTION
+
+        FOR Index i FOR i less than k{
+            Eigenvalue Lambda = Calling Power_method FUNCTION
+            ith Index of S = square root of Lambda
+            FOR Index j FOR j less than c{
+                jth row and ith column of V = jth element of eigenvec
+            }
+
+            FOR Index p FOR p less than c{
+                FOR Index j FOR j less than c{
+                    pth row and jth column of B_def -= Lambda*(pth element of eigenvec)* (jth element of eigenvec) 
+                }
+            } 
+        }
+        FOR Index i FOR i less than k{
+            FOR Index j FOR j less than c{
+                eigenvec = ith column of V
+            }
+            left_s_vec = multiply A_ch and eigenvec
+            Normalize left_s_vec
+            FOR Index j FOR j<r{
+                ith column of U = left_s_vec
+            }
+        }
+        FOR Index i FOR i less than r{
+            FOR Index j FOR j less than c{
+                sum = 0
+                FOR Index p FOR p less than k{
+                    sum += (element of ith row and pth column of U)*(pth element of S)*(element of jth row and pth column of V)
+                    (element of ith row and jth column of R) = sum
+                }
+            }
+        }
+        Freeing all the allocated memory
+    }
+    }
+\end{lstlisting}
+
+\subsection*{Python Code Explanation}
+\textbf{1. Load libraries}\\
+The code starts by importing necessary Python libraries: ctypes for interfacing with C, numpy for numerical operations, matplotlib for plotting results, and PIL for image handling.\\
+\textbf{2. Interface with C code}\\
+The code loads the shared C library and specifies the data types of the arguments for the C function find\_svd. This ensures that Python and C can correctly exchange data.\\
+\textbf{3. Image loading}\\
+An image file is opened, converted to the RGB color model, and then transformed into a numpy array of floating point numbers, which is a format suitable for mathematical computations.\\
+And it also checks whether the given image is greyscale or color and does the calculation according to that.\\
+\textbf{4. Visual Demonstration}\\
+The code then generates a series of compressed images. It iterates through a list of k values.\\
+\textbf{5. Performance and Accuracy Analysis}\\
+Explained in the next section.\\
+\textbf{6. Output Results}\\
+The code then prints the runtime of both the C and numpy methods, as well as the calculated errors. It also displays the visual comparison of the original and compressed images.\\
+It also prints forbenius error for each value of k for selected image as shown in the above sample outputs.
+
+\section*{Performance and Accuracy Analysis}
+\subsection*{Runtime}
+I used the time library in python to compare the runtime(for $k=50$) of my algorithm and python standard command.
+\subsection*{Error}
+I also used python to calculate the relative error and mean squared error between my algorithm and python standard command.Formulas that I used are as follows:
+\begin{enumerate}
+    \item Mean Sqaured Error = $\frac{\Sigma_{i=1}^N(a_{np}-a_{Ci})^2}{N}$ 
+    \item Relative Error = $\frac{||A_{np}-A_C||_F}{||A_{np}||_F}$
+\end{enumerate}
+
+\section*{Sample outputs}
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/sample1.png}
+\end{figure}
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/sample1_stats.png}
+\end{figure}
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/sample2.png}
+\end{figure}
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/sample2_stats.png}
+\end{figure}
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/sample3.png}
+\end{figure}
+\newpage
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/sample3_stats.png}
+\end{figure}
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/sample4.png}
+\end{figure}
+\begin{figure}[htbp!]
+    \centering
+    \includegraphics[width=1\linewidth]{figs/sample4_stats.png}
+\end{figure}
+
+\section*{Frobenius Norm}
+The logic to compute Frobenius norm is written in C and the python code calls the function and prints the error as shown in the above images.
+\begin{align}
+    ||A-A_k||\\
+    ||.||_F=\sqrt{\Sigma_{i=1}^{m}\Sigma_{j=1}^n(a_{ij}-a_{k(ij)})^2}
+\end{align}
+\input{tables/Frobenius.tex}
+
+\section*{Conclusion}
+This project implemented SVD for image compression using Power Method in C, integrated with python for visualization and analysis. Image compression is useful for storing data in less space.\\
+From above sample outputs we can see that smaller values of $k$ yield images with higher compression and lower picture quality, whereas larger values of k reproduces almost the same image therefore reducing compression. Although finding singular values using power method is not as efficient as using numpy's SVD, it helps in understanding the mathematical background of computing SVD and using it for image compression.\\
+Overall, the project demonstrated how SVD can be used for image compression while retaining image quality, and also offered insights into iterative methods and matrix based image processing.
+
+
+\begin{thebibliography}{9}
+
+\bibitem{strang_svd}
+G. Strang, "The Singular Value Decomposition (SVD)," 
+\textit{MIT OpenCourseWare: Linear Algebra (18.06)}, Lecture 29, Massachusetts Institute of Technology, 
+Available at: \url{https://www.youtube.com/watch?v=YzZUIYRCE38}
+
+\end{thebibliography}
+
+\end{document}
+
+
