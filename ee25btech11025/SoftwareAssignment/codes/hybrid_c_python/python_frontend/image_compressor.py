@@ -124,4 +124,5 @@ print(f"Mean Squared Error: {mse:.6f}")
 print(f"Relative Error: {rel_error:.6e}")
 
 plot.tight_layout()
+plot.savefig("../../../figs/recent.png")
 plot.show()
